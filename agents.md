@@ -4,6 +4,6 @@
 
 - Customers cannot upload XLS.
 
--XLS export must be minimal, single Sheet1, fixed mapping, and must never write price cells.
+- XLS export must be minimal, single Sheet1, fixed mapping, and must never write price cells.
 
 - Add tests: validation, queue numbering, XLS golden-file.
