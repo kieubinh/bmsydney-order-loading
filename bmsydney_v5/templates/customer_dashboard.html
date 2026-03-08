@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block title %}My Orders — BMSydney{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header flex-between">
+    <div>
+      <div class="page-title">My Orders</div>
+      <div class="page-sub">Welcome back, {{ user.name }}</div>
+    </div>
+    <a href="{{ url_for('new_order') }}" class="btn btn-primary">+ New Order</a>
+  </div>
+
+  {% if not orders %}
+  <div class="card" style="text-align:center;padding:60px 24px;">
+    <div style="font-size:48px;margin-bottom:16px;">📦</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">No orders yet</div>
+    <div class="text-muted" style="margin-bottom:20px;">Create your first order to get started</div>
+    <a href="{{ url_for('new_order') }}" class="btn btn-primary">Create Order</a>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Order Ref</th>
+            <th>Queue #</th>
+            <th>Type</th>
+            <th>Details</th>
+            <th>Required Date</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td><span class="mono text-accent" style="font-size:12px;">{{ order.order_ref }}</span></td>
+            <td>
+              {% if order.queue_number %}
+              <span class="mono" style="font-size:12px;color:#e8eaf0;">{{ order.queue_number }}</span>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if order.order_type == 'Pickup' %}
+              <span style="color:#40c0c0;">🏪 Pickup</span>
+              {% else %}
+              <span style="color:#9090e0;">🚚 Delivery</span>
+              {% endif %}
+            </td>
+            <td class="text-muted" style="font-size:12px;">
+              {{ order.pickup_store or order.delivery_address or '—' }}
+            </td>
+            <td class="text-muted" style="font-size:12px;">{{ order.required_date | ddate }}</td>
+            <td>
+              <span class="badge badge-{{ order.status.lower() }}">{{ order.status }}</span>
+            </td>
+            <td class="text-muted" style="font-size:12px;">
+              {{ order.submitted_at | ddate }}
+            </td>
+            <td>
+              <a href="{{ url_for('order_detail_customer', order_id=order.id) }}" class="btn btn-sm btn-secondary">View</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

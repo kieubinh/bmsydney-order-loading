@@ -1,0 +1,7 @@
+flask
+openpyxl
+pytesseract
+opencv-python-headless
+pillow
+pdf2image
+gunicorn

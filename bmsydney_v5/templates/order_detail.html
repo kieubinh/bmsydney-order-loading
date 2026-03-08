@@ -1,0 +1,90 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_ref }} — BMSydney{% endblock %}
+{% block content %}
+<div class="container" style="max-width:900px;">
+  <div class="page-header flex-between">
+    <div>
+      <div class="page-title mono" style="font-size:18px;">{{ order.order_ref }}</div>
+      <div class="page-sub">
+        Queue: <span class="mono text-accent">{{ order.queue_number or 'Not yet assigned' }}</span> &nbsp;·&nbsp;
+        <span class="badge badge-{{ order.status.lower() }}">{{ order.status }}</span>
+      </div>
+    </div>
+    <a href="{{ url_for('customer_dashboard') }}" class="btn btn-secondary">← Back</a>
+  </div>
+
+  <div class="grid-2">
+    <div>
+      <div class="card mb-4">
+        <div class="card-title">Order Details</div>
+        <table style="width:100%;">
+          <tr><td class="text-muted" style="width:40%;padding:6px 0;font-size:12px;">Type</td>
+              <td>{{ order.order_type }}{% if order.pickup_store %} — {{ order.pickup_store }}{% endif %}</td></tr>
+          <tr><td class="text-muted" style="padding:6px 0;font-size:12px;">Status</td>
+              <td><span class="badge badge-{{ order.status.lower() }}">{{ order.status }}</span></td></tr>
+          <tr><td class="text-muted" style="padding:6px 0;font-size:12px;">Required Date</td>
+              <td>{{ order.required_date | ddate }}</td></tr>
+          {% if order.delivery_address %}
+          <tr><td class="text-muted" style="padding:6px 0;font-size:12px;">Delivery Address</td>
+              <td>{{ order.delivery_address }}</td></tr>
+          <tr><td class="text-muted" style="padding:6px 0;font-size:12px;">Contact</td>
+              <td>{{ order.contact_number or '—' }}</td></tr>
+          {% endif %}
+          {% if order.job_name %}
+          <tr><td class="text-muted" style="padding:6px 0;font-size:12px;">Job Name</td>
+              <td>{{ order.job_name }}</td></tr>
+          {% endif %}
+          {% if order.fulfilment_note %}
+          <tr><td class="text-muted" style="padding:6px 0;font-size:12px;">Note</td>
+              <td>{{ order.fulfilment_note }}</td></tr>
+          {% endif %}
+          <tr><td class="text-muted" style="padding:6px 0;font-size:12px;">Submitted</td>
+              <td>{{ order.submitted_at | ddate }}</td></tr>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <div class="card mb-4">
+        <div class="card-title">Files</div>
+        {% if attachments %}
+          {% for att in attachments %}
+          {% if att.attach_type == 'GeneratedXLS' %}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:13px;font-weight:500;">📊 XLS v{{ att.version_no }}</div>
+              <div style="font-size:11px;color:var(--muted);">{{ att.created_at | ddate }}</div>
+            </div>
+            <a href="{{ url_for('download_xls', attachment_id=att.id) }}" class="btn btn-sm btn-success">↓ Download</a>
+          </div>
+          {% endif %}
+          {% endfor %}
+        {% else %}
+          <div class="text-muted" style="font-size:13px;padding:12px 0;">No files yet</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Order Lines ({{ lines|length }})</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Item Code</th><th>Description</th><th>Quantity</th></tr>
+        </thead>
+        <tbody>
+          {% for line in lines %}
+          <tr>
+            <td class="text-muted">{{ line.line_no }}</td>
+            <td class="mono" style="color:var(--accent);font-size:12px;">{{ line.item_code }}</td>
+            <td>{{ line.description or '—' }}</td>
+            <td><strong>{{ line.quantity }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

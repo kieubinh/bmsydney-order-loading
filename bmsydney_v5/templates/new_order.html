@@ -1,0 +1,664 @@
+{% extends "base.html" %}
+{% block title %}New Order — BMSydney{% endblock %}
+{% block content %}
+<div class="container" style="max-width:900px;">
+  <div class="page-header">
+    <div class="page-title">Create New Order</div>
+    <div class="page-sub">Select your items and fulfilment method</div>
+  </div>
+
+  <!-- Step indicator -->
+  <div style="display:flex;gap:0;margin-bottom:28px;" id="step-indicator">
+    <div class="step-item active" data-step="1" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div class="step-dot" style="width:32px;height:32px;border-radius:50%;background:var(--accent);color:#0d0f14;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">1</div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--accent);">Entry Method</div>
+    </div>
+    <div style="flex:1;height:1px;background:var(--border);margin-top:16px;"></div>
+    <div class="step-item" data-step="2" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div class="step-dot" style="width:32px;height:32px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">2</div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Order Items</div>
+    </div>
+    <div style="flex:1;height:1px;background:var(--border);margin-top:16px;"></div>
+    <div class="step-item" data-step="3" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div class="step-dot" style="width:32px;height:32px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">3</div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Fulfilment</div>
+    </div>
+    <div style="flex:1;height:1px;background:var(--border);margin-top:16px;"></div>
+    <div class="step-item" data-step="4" style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;">
+      <div class="step-dot" style="width:32px;height:32px;border-radius:50%;background:var(--surface2);border:2px solid var(--border);color:var(--muted);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">4</div>
+      <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);">Review</div>
+    </div>
+  </div>
+
+  <!-- STEP 1: Entry Method -->
+  <div id="step-1" class="step-content">
+    <div class="card">
+      <div class="card-title">How would you like to add items?</div>
+      <div class="radio-cards">
+        <div class="radio-card">
+          <input type="radio" name="entry_method" id="em-manual" value="manual" checked>
+          <label for="em-manual">
+            <div class="rc-icon">📝</div>
+            <div class="rc-title">Manual Entry</div>
+            <div class="rc-sub">Search and select items from our catalogue</div>
+          </label>
+        </div>
+        <div class="radio-card">
+          <input type="radio" name="entry_method" id="em-scan" value="scan">
+          <label for="em-scan">
+            <div class="rc-icon">📷</div>
+            <div class="rc-title">Upload Document / Scan</div>
+            <div class="rc-sub">Upload an image with item codes and quantities</div>
+          </label>
+        </div>
+      </div>
+      <div class="mt-4" style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary" onclick="nextStep(2)">Continue →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: Items -->
+  <div id="step-2" class="step-content" style="display:none;">
+    <!-- Manual mode -->
+    <div id="manual-mode">
+      <div class="card mb-4">
+        <div class="card-title">Search & Add Items</div>
+        <div style="display:flex;gap:10px;margin-bottom:16px;">
+          <input type="text" id="item-search" class="form-control" placeholder="Search by item code or description…" style="flex:1;">
+          <button class="btn btn-secondary" onclick="searchItems()">Search</button>
+        </div>
+        <div id="search-results" style="display:none;max-height:280px;overflow-y:auto;border:1px solid var(--border);border-radius:8px;">
+          <table style="margin:0;">
+            <thead>
+              <tr>
+                <th>Item Code</th>
+                <th>Description</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="search-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="flex-between mb-4">
+          <div class="card-title" style="margin:0;">Order Lines</div>
+          <span id="line-count" style="font-size:12px;color:var(--muted);">0 items</span>
+        </div>
+        <div id="order-lines-empty" style="text-align:center;padding:32px;color:var(--muted);">
+          <div style="font-size:32px;margin-bottom:8px;">📦</div>
+          Search and add items above
+        </div>
+        <div class="table-wrap" id="order-lines-table" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item Code</th>
+                <th>Description</th>
+                <th>Quantity</th>
+                <th></th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="lines-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scan mode -->
+    <div id="scan-mode" style="display:none;">
+      <!-- Upload zone -->
+      <div class="card mb-4">
+        <div class="card-title">Upload Document / Image</div>
+        <div id="drop-zone"
+             style="border:2px dashed var(--border);border-radius:10px;padding:40px;text-align:center;cursor:pointer;transition:border-color .2s;"
+             onclick="document.getElementById('scan-file').click();"
+             ondragover="event.preventDefault();this.style.borderColor='var(--accent)'"
+             ondragleave="this.style.borderColor='var(--border)'"
+             ondrop="handleDrop(event)">
+          <div style="font-size:36px;margin-bottom:12px;">📄</div>
+          <div style="font-weight:600;margin-bottom:6px;">Click to upload or drag &amp; drop</div>
+          <div style="font-size:12px;color:var(--muted);">PNG, JPG, PDF — scanned order sheets work best</div>
+          <input type="file" id="scan-file" style="display:none;" accept="image/*,.pdf" onchange="handleScanUpload(this.files[0])">
+        </div>
+        <!-- Status / progress -->
+        <div id="scan-status" style="margin-top:12px;display:none;"></div>
+        <!-- Preview thumbnail -->
+        <div id="scan-preview" style="margin-top:12px;display:none;text-align:center;">
+          <img id="scan-thumb" style="max-height:180px;max-width:100%;border-radius:8px;border:1px solid var(--border);">
+        </div>
+      </div>
+
+      <!-- Extracted + manual lines -->
+      <div class="card">
+        <div class="flex-between mb-4">
+          <div class="card-title" style="margin:0;">📋 Extracted Items — Review &amp; Edit</div>
+          <span id="ocr-badge" style="display:none;font-size:11px;font-family:var(--mono);
+                background:rgba(64,192,112,.15);color:var(--success);
+                border:1px solid rgba(64,192,112,.3);padding:3px 10px;border-radius:20px;"></span>
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+          Review extracted items carefully — OCR may misread characters.
+          Correct item codes and quantities before continuing.
+        </div>
+
+        <div id="order-lines-empty-scan" style="text-align:center;padding:24px;color:var(--muted);">
+          Upload a document above — items will appear here automatically
+        </div>
+        <div class="table-wrap" id="order-lines-table-scan" style="display:none;">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Item Code</th>
+                <th>Description</th>
+                <th style="width:100px;">Quantity</th>
+                <th style="width:90px;">Source</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="lines-tbody-scan"></tbody>
+          </table>
+        </div>
+
+        <!-- Add manual line -->
+        <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--border);">
+          <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:8px;">
+            Add / correct a line manually
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <input type="text" id="scan-item-code" class="form-control" placeholder="Item Code" style="width:180px;">
+            <input type="text" id="scan-item-desc" class="form-control" placeholder="Description (optional)" style="flex:1;min-width:120px;">
+            <input type="number" id="scan-item-qty" class="form-control" placeholder="Qty" style="width:80px;" min="0.01" step="any">
+            <button class="btn btn-secondary" onclick="addManualScanLine()">+ Add</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4" style="display:flex;justify-content:space-between;">
+      <button class="btn btn-secondary" onclick="prevStep(1)">← Back</button>
+      <button class="btn btn-primary" onclick="nextStep(3)">Continue →</button>
+    </div>
+  </div>
+
+  <!-- STEP 3: Fulfilment -->
+  <div id="step-3" class="step-content" style="display:none;">
+    <div class="card">
+      <div class="card-title">Fulfilment Details</div>
+
+      <div class="form-group">
+        <label class="form-label">Fulfilment Type</label>
+        <div class="radio-cards">
+          <div class="radio-card">
+            <input type="radio" name="order_type" id="ot-pickup" value="Pickup" checked>
+            <label for="ot-pickup">
+              <div class="rc-icon">🏪</div>
+              <div class="rc-title">Pickup</div>
+              <div class="rc-sub">Collect from store</div>
+            </label>
+          </div>
+          <div class="radio-card">
+            <input type="radio" name="order_type" id="ot-delivery" value="Delivery">
+            <label for="ot-delivery">
+              <div class="rc-icon">🚚</div>
+              <div class="rc-title">Delivery</div>
+              <div class="rc-sub">Deliver to your address</div>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <!-- Pickup fields -->
+      <div id="pickup-fields">
+        <div class="form-group">
+          <label class="form-label">Select Store</label>
+          <div class="radio-cards">
+            <div class="radio-card">
+              <input type="radio" name="pickup_store" id="ps-cabra" value="Cabramatta" checked>
+              <label for="ps-cabra">
+                <div class="rc-title">📍 Cabramatta</div>
+                <div class="rc-sub">Cabramatta store</div>
+              </label>
+            </div>
+            <div class="radio-card">
+              <input type="radio" name="pickup_store" id="ps-lidcombe" value="Lidcombe">
+              <label for="ps-lidcombe">
+                <div class="rc-title">📍 Lidcombe</div>
+                <div class="rc-sub">Lidcombe store</div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery fields -->
+      <div id="delivery-fields" style="display:none;">
+        <div class="grid-2">
+          <div class="form-group">
+            <label class="form-label">Required Date <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="required_date" class="form-control" placeholder="DD/MM/YYYY">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Contact Number <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="contact_number" class="form-control" placeholder="04xx xxx xxx">
+          </div>
+          <div class="form-group col-span-2">
+            <label class="form-label">Delivery Address <span style="color:var(--danger);">*</span></label>
+            <input type="text" id="delivery_address" class="form-control" placeholder="Street, Suburb, State, Postcode">
+          </div>
+        </div>
+      </div>
+
+      <hr class="divider">
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label class="form-label">Job Name / Reference</label>
+          <input type="text" id="job_name" class="form-control" placeholder="Optional job name">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Customer Order No / PO</label>
+          <input type="text" id="customer_order_no" class="form-control" placeholder="Your PO reference">
+        </div>
+        <div class="form-group col-span-2">
+          <label class="form-label">Fulfilment Note</label>
+          <textarea id="fulfilment_note" class="form-control" placeholder="Special instructions, delivery notes…"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-4" style="display:flex;justify-content:space-between;">
+      <button class="btn btn-secondary" onclick="prevStep(2)">← Back</button>
+      <button class="btn btn-primary" onclick="nextStep(4)">Review Order →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: Review & Submit -->
+  <div id="step-4" class="step-content" style="display:none;">
+    <div class="card mb-4">
+      <div class="card-title">Order Summary</div>
+      <div id="review-content"></div>
+    </div>
+    <div class="mt-4" style="display:flex;justify-content:space-between;align-items:center;">
+      <button class="btn btn-secondary" onclick="prevStep(3)">← Back</button>
+      <button class="btn btn-primary" id="submit-btn" onclick="submitOrder()" style="padding:10px 28px;font-size:15px;">
+        Submit Order ✓
+      </button>
+    </div>
+  </div>
+
+  <!-- SUCCESS MODAL -->
+  <div id="success-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:1000;align-items:center;justify-content:center;">
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:40px;max-width:420px;width:90%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.5);">
+      <div style="font-size:52px;margin-bottom:16px;">✅</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:8px;">Order Submitted!</div>
+      <div style="color:var(--muted);margin-bottom:24px;">Your order has been received and is being processed.</div>
+      <div style="background:var(--surface2);border-radius:10px;padding:16px;margin-bottom:20px;">
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Queue Number</div>
+        <div id="success-queue" style="font-family:var(--mono);font-size:22px;color:var(--accent);font-weight:700;"></div>
+        <div id="success-ref" style="font-size:12px;color:var(--muted);margin-top:6px;font-family:var(--mono);"></div>
+      </div>
+      <a href="{{ url_for('customer_dashboard') }}" class="btn btn-primary" style="display:inline-block;">View My Orders</a>
+    </div>
+  </div>
+</div>
+
+<script>
+let orderLines = [];
+let currentOrderId = null;
+let scanMode = false;
+
+// ── Step navigation ──────────────────────────────────────────────────────────
+function nextStep(n) {
+  if (n === 2) {
+    const method = document.querySelector('input[name="entry_method"]:checked').value;
+    scanMode = method === 'scan';
+    document.getElementById('manual-mode').style.display = scanMode ? 'none' : 'block';
+    document.getElementById('scan-mode').style.display = scanMode ? 'block' : 'none';
+  }
+  if (n === 3) {
+    const lines = getLines();
+    if (!lines.length) { alert('Please add at least one item.'); return; }
+    orderLines = lines;
+  }
+  if (n === 4) {
+    if (!validateFulfilment()) return;
+    renderReview();
+  }
+  goToStep(n);
+}
+
+function prevStep(n) { goToStep(n); }
+
+function goToStep(n) {
+  document.querySelectorAll('.step-content').forEach(el => el.style.display = 'none');
+  document.getElementById(`step-${n}`).style.display = 'block';
+  document.querySelectorAll('.step-item').forEach((el, i) => {
+    const dot = el.querySelector('.step-dot');
+    const label = el.querySelector('div:last-child');
+    if (i + 1 < n) {
+      dot.style.background = 'var(--success)'; dot.style.color = '#0d0f14'; dot.style.border = 'none';
+      label.style.color = 'var(--success)'; dot.textContent = '✓';
+    } else if (i + 1 === n) {
+      dot.style.background = 'var(--accent)'; dot.style.color = '#0d0f14'; dot.style.border = 'none';
+      label.style.color = 'var(--accent)'; dot.textContent = i + 1;
+    } else {
+      dot.style.background = 'var(--surface2)'; dot.style.color = 'var(--muted)'; dot.style.border = '2px solid var(--border)';
+      label.style.color = 'var(--muted)'; dot.textContent = i + 1;
+    }
+  });
+  window.scrollTo(0, 0);
+}
+
+// ── Fulfilment toggle ─────────────────────────────────────────────────────────
+document.querySelectorAll('input[name="order_type"]').forEach(r => {
+  r.addEventListener('change', () => {
+    const isDelivery = r.value === 'Delivery';
+    document.getElementById('pickup-fields').style.display = isDelivery ? 'none' : 'block';
+    document.getElementById('delivery-fields').style.display = isDelivery ? 'block' : 'none';
+    if (isDelivery && !document.getElementById('required_date').value) {
+      const now = new Date();
+      const dd = String(now.getDate()).padStart(2,'0');
+      const mm = String(now.getMonth()+1).padStart(2,'0');
+      const yyyy = now.getFullYear();
+      document.getElementById('required_date').value = `${dd}/${mm}/${yyyy}`;
+    }
+  });
+});
+
+function validateFulfilment() {
+  const ot = document.querySelector('input[name="order_type"]:checked').value;
+  if (ot === 'Delivery') {
+    if (!document.getElementById('delivery_address').value.trim()) { alert('Delivery address is required.'); return false; }
+    if (!document.getElementById('contact_number').value.trim()) { alert('Contact number is required.'); return false; }
+    if (!document.getElementById('required_date').value) { alert('Required date is required for delivery.'); return false; }
+  }
+  return true;
+}
+
+// ── Item search ───────────────────────────────────────────────────────────────
+document.getElementById('item-search').addEventListener('keydown', e => {
+  if (e.key === 'Enter') searchItems();
+});
+
+async function searchItems() {
+  const q = document.getElementById('item-search').value.trim();
+  const res = await fetch(`/api/items?search=${encodeURIComponent(q)}`);
+  const data = await res.json();
+  const tbody = document.getElementById('search-tbody');
+  tbody.innerHTML = data.map(item => `
+    <tr>
+      <td class="mono" style="font-size:12px;">${item.item_code}</td>
+      <td style="font-size:13px;">${item.description}</td>
+      <td><button class="btn btn-sm btn-success" onclick="addLine('${item.item_code}','${item.description.replace(/'/g,"\\'")}')">+ Add</button></td>
+    </tr>
+  `).join('') || '<tr><td colspan="3" class="text-muted" style="text-align:center;padding:16px;">No items found</td></tr>';
+  document.getElementById('search-results').style.display = 'block';
+}
+
+function addLine(code, desc) {
+  const existing = orderLines.findIndex(l => l.item_code === code);
+  if (existing >= 0) {
+    orderLines[existing].quantity += 1;
+  } else {
+    orderLines.push({ item_code: code, description: desc, quantity: 1 });
+  }
+  renderLines();
+}
+
+function addManualScanLine() {
+  const code = document.getElementById('scan-item-code').value.trim();
+  const desc = document.getElementById('scan-item-desc').value.trim();
+  const qty = parseFloat(document.getElementById('scan-item-qty').value);
+  if (!code) { alert('Item code required'); return; }
+  if (!qty || qty <= 0) { alert('Quantity must be > 0'); return; }
+  const existing = orderLines.findIndex(l => l.item_code === code);
+  if (existing >= 0) { orderLines[existing].quantity += qty; }
+  else { orderLines.push({ item_code: code, description: desc, quantity: qty }); }
+  document.getElementById('scan-item-code').value = '';
+  document.getElementById('scan-item-desc').value = '';
+  document.getElementById('scan-item-qty').value = '';
+  renderLines();
+}
+
+function removeLine(i) {
+  orderLines.splice(i, 1);
+  renderLines();
+}
+
+function updateQty(i, val) {
+  const v = parseFloat(val);
+  if (v > 0) orderLines[i].quantity = v;
+}
+
+function getLines() { return orderLines; }
+
+function renderLines() {
+  const tbody = scanMode ? document.getElementById('lines-tbody-scan') : document.getElementById('lines-tbody');
+  const tableDiv = scanMode ? document.getElementById('order-lines-table-scan') : document.getElementById('order-lines-table');
+  const emptyDiv = scanMode ? document.getElementById('order-lines-empty-scan') : document.getElementById('order-lines-empty');
+  const count = document.getElementById('line-count');
+  if (count) count.textContent = `${orderLines.length} item${orderLines.length !== 1 ? 's' : ''}`;
+  if (!orderLines.length) {
+    if (tableDiv) tableDiv.style.display = 'none';
+    if (emptyDiv) emptyDiv.style.display = 'block';
+    return;
+  }
+  if (tableDiv) tableDiv.style.display = 'block';
+  if (emptyDiv) emptyDiv.style.display = 'none';
+  const confidenceLabel = (c) => {
+    if (c === 'matched') return '<span style="font-size:10px;color:var(--success);font-family:var(--mono);">✓ matched</span>';
+    if (c === 'fuzzy')   return '<span style="font-size:10px;color:var(--warn);font-family:var(--mono);">~ fuzzy</span>';
+    if (c === 'ocr' || c === 'unmatched') return '<span style="font-size:10px;color:var(--danger);font-family:var(--mono);">⚠ check</span>';
+    return '';
+  };
+  tbody.innerHTML = orderLines.map((l, i) => `
+    <tr>
+      <td class="text-muted" style="font-size:12px;">${i+1}</td>
+      <td><input type="text" value="${l.item_code}" class="form-control" style="width:160px;font-family:var(--mono);font-size:12px;color:var(--accent);" onchange="orderLines[${i}].item_code=this.value"></td>
+      <td style="font-size:13px;">${l.description || '—'}</td>
+      <td><input type="number" value="${l.quantity}" min="0.01" step="any" style="width:80px;" class="form-control" onchange="updateQty(${i}, this.value)"></td>
+      <td>${l.confidence ? confidenceLabel(l.confidence) : ''}</td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeLine(${i})">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+// ── Scan upload ────────────────────────────────────────────────────────────────
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').style.borderColor = 'var(--border)';
+  const file = e.dataTransfer.files[0];
+  if (file) handleScanUpload(file);
+}
+
+async function handleScanUpload(file) {
+  if (!file) return;
+  const statusDiv  = document.getElementById('scan-status');
+  const previewDiv = document.getElementById('scan-preview');
+  const thumb      = document.getElementById('scan-thumb');
+
+  // Show image preview
+  if (file.type.startsWith('image/')) {
+    const reader = new FileReader();
+    reader.onload = e => { thumb.src = e.target.result; previewDiv.style.display = 'block'; };
+    reader.readAsDataURL(file);
+  }
+
+  statusDiv.style.display = 'block';
+  statusDiv.innerHTML = `
+    <div class="alert alert-info" style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:20px;">⏳</span>
+      <span><strong>Processing…</strong> OCR is reading your document. This may take 10–20 seconds.</span>
+    </div>`;
+
+  // Create a draft order ID if we don't have one yet
+  if (!currentOrderId) {
+    try {
+      const tmp = await fetch('/api/orders', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({order_type:'Pickup', pickup_store:'Cabramatta', source:'Scan', lines:[]})
+      });
+      const td = await tmp.json();
+      if (!td.order_id) throw new Error('No order ID returned');
+      currentOrderId = td.order_id;
+    } catch(e) {
+      statusDiv.innerHTML = `<div class="alert alert-error">❌ Failed to initialise order: ${e.message}</div>`;
+      return;
+    }
+  }
+
+  // Upload the file
+  const fd = new FormData();
+  fd.append('file', file);
+  let data;
+  try {
+    const res = await fetch(`/api/orders/${currentOrderId}/upload-scan`, { method: 'POST', body: fd });
+    data = await res.json();
+  } catch(e) {
+    statusDiv.innerHTML = `<div class="alert alert-error">❌ Upload failed: ${e.message}. Check your connection.</div>`;
+    return;
+  }
+
+  // ── OCR not installed on the server → show install guide ──────────────────
+  if (data.ocr_unavailable) {
+    const steps = (data.install_steps || []).map(s =>
+      `<div style="font-family:var(--mono);font-size:12px;padding:3px 0;color:var(--text);">${s}</div>`
+    ).join('');
+    statusDiv.innerHTML = `
+      <div style="background:rgba(232,160,32,.08);border:1px solid rgba(232,160,32,.3);border-radius:10px;padding:18px;">
+        <div style="font-weight:700;color:var(--accent);margin-bottom:10px;font-size:14px;">
+          ⚠ OCR Not Installed — Setup Required
+        </div>
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px;">
+          To enable automatic text extraction from images, install the following on your server machine:
+        </div>
+        ${steps}
+        <div style="margin-top:14px;padding:10px;background:var(--surface2);border-radius:7px;font-size:11px;color:var(--muted);">
+          <strong>Detail:</strong> ${data.detail || ''}
+        </div>
+        <div style="margin-top:12px;font-size:13px;color:var(--text);">
+          💡 <strong>In the meantime</strong>, you can still add items manually in the table below.
+        </div>
+      </div>`;
+    return;
+  }
+
+  // ── Show success / warning result ─────────────────────────────────────────
+  const isOk = data.extracted_lines && data.extracted_lines.length > 0;
+  statusDiv.innerHTML = `
+    <div class="alert ${isOk ? 'alert-success' : 'alert-warning'}">
+      ${isOk ? '✓' : '⚠'} ${data.message || 'Done'}
+    </div>`;
+
+  // Populate extracted lines into the table
+  if (isOk) {
+    data.extracted_lines.forEach(el => {
+      const existing = orderLines.findIndex(l => l.item_code.toUpperCase() === el.item_code.toUpperCase());
+      if (existing >= 0) {
+        orderLines[existing].quantity += el.quantity;
+      } else {
+        orderLines.push({
+          item_code: el.item_code,
+          description: el.description || '',
+          quantity: el.quantity,
+          confidence: el.confidence || 'ocr'
+        });
+      }
+    });
+    const badge = document.getElementById('ocr-badge');
+    badge.textContent = `✓ ${data.extracted_lines.length} line(s) extracted`;
+    badge.style.display = 'inline-block';
+    renderLines();
+  }
+}
+
+// ── Review ─────────────────────────────────────────────────────────────────────
+function renderReview() {
+  const ot = document.querySelector('input[name="order_type"]:checked').value;
+  const store = document.querySelector('input[name="pickup_store"]:checked')?.value;
+  const reqDate = document.getElementById('required_date').value;
+  const addr = document.getElementById('delivery_address').value;
+  const contact = document.getElementById('contact_number').value;
+  const note = document.getElementById('fulfilment_note').value;
+  const jobName = document.getElementById('job_name').value;
+  const poNo = document.getElementById('customer_order_no').value;
+
+  let headerHtml = `
+    <div class="grid-2" style="margin-bottom:16px;">
+      <div><div class="form-label">Type</div><div>${ot === 'Pickup' ? '🏪 Pickup — ' + store : '🚚 Delivery'}</div></div>
+      ${reqDate ? `<div><div class="form-label">Required Date</div><div>${reqDate}</div></div>` : ''}
+      ${addr ? `<div class="col-span-2"><div class="form-label">Delivery Address</div><div>${addr}</div></div>` : ''}
+      ${contact ? `<div><div class="form-label">Contact</div><div>${contact}</div></div>` : ''}
+      ${jobName ? `<div><div class="form-label">Job Name</div><div>${jobName}</div></div>` : ''}
+      ${poNo ? `<div><div class="form-label">PO / Order No</div><div>${poNo}</div></div>` : ''}
+      ${note ? `<div class="col-span-2"><div class="form-label">Note</div><div>${note}</div></div>` : ''}
+    </div>
+    <hr class="divider">
+    <div class="card-title">Items (${orderLines.length})</div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>Item Code</th><th>Description</th><th>Qty</th></tr></thead>
+        <tbody>
+          ${orderLines.map((l,i) => `
+            <tr>
+              <td class="text-muted">${i+1}</td>
+              <td class="mono" style="color:var(--accent);font-size:12px;">${l.item_code}</td>
+              <td>${l.description || '—'}</td>
+              <td><strong>${l.quantity}</strong></td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+  document.getElementById('review-content').innerHTML = headerHtml;
+}
+
+// ── Submit ────────────────────────────────────────────────────────────────────
+async function createDraftOrder(isScan) {
+  const ot = document.querySelector('input[name="order_type"]:checked')?.value || 'Pickup';
+  const store = document.querySelector('input[name="pickup_store"]:checked')?.value;
+  const payload = {
+    order_type: ot,
+    pickup_store: ot === 'Pickup' ? store : null,
+    required_date: document.getElementById('required_date').value,
+    delivery_address: document.getElementById('delivery_address').value,
+    contact_number: document.getElementById('contact_number').value,
+    fulfilment_note: document.getElementById('fulfilment_note').value,
+    job_name: document.getElementById('job_name').value,
+    customer_order_no: document.getElementById('customer_order_no').value,
+    source: isScan ? 'Scan' : 'Manual',
+    lines: orderLines
+  };
+  const res = await fetch('/api/orders', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+  return res.ok ? await res.json() : null;
+}
+
+async function submitOrder() {
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = 'Submitting…';
+  try {
+    const draft = await createDraftOrder(scanMode);
+    if (!draft?.order_id) throw new Error('Failed to create order');
+    const sub = await fetch(`/api/orders/${draft.order_id}/submit`, { method: 'POST' });
+    const data = await sub.json();
+    if (data.success) {
+      document.getElementById('success-queue').textContent = data.queue_number;
+      document.getElementById('success-ref').textContent = data.order_ref;
+      document.getElementById('success-modal').style.display = 'flex';
+    } else {
+      throw new Error(data.error || 'Submit failed');
+    }
+  } catch(e) {
+    alert('Error: ' + e.message);
+    btn.disabled = false; btn.textContent = 'Submit Order ✓';
+  }
+}
+</script>
+{% endblock %}

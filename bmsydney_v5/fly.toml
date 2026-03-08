@@ -1,0 +1,27 @@
+# fly.toml — Fly.io configuration for BMSydney
+# Replace "bmsydney-yourname" below with your own unique app name
+
+app = "bmsydney-yourname"
+primary_region = "syd"   # Sydney — closest to you
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = false
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[vm]]
+  cpu_kind = "shared"
+  cpus = 1
+  memory_mb = 512
+
+[mounts]
+  source = "bmsydney_data"
+  destination = "/app/data"

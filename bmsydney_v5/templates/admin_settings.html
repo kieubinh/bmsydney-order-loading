@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Admin Settings — BMSydney{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header">
+    <div class="page-title">Admin Settings</div>
+    <div class="page-sub">Configure routing, users, and item master</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start;">
+    <!-- Email Routing -->
+    <div class="card">
+      <div class="card-title">📧 Email Routing</div>
+      <form method="POST">
+        <div class="form-group">
+          <label class="form-label">Cabramatta CS Email</label>
+          <input type="email" name="CABRA_CS_EMAIL" class="form-control" value="{{ settings.get('CABRA_CS_EMAIL','') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Lidcombe CS Email</label>
+          <input type="email" name="LIDCOMBE_CS_EMAIL" class="form-control" value="{{ settings.get('LIDCOMBE_CS_EMAIL','') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">OPS Delivery Email</label>
+          <input type="email" name="OPS_DELIVERY_EMAIL" class="form-control" value="{{ settings.get('OPS_DELIVERY_EMAIL','') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Default Debtor Code</label>
+          <input type="text" name="DEBTOR_CODE" class="form-control" value="{{ settings.get('DEBTOR_CODE','1051034') }}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Queue Reset Policy</label>
+          <select name="QUEUE_RESET" class="form-control">
+            <option value="daily" {% if settings.get('QUEUE_RESET')=='daily' %}selected{% endif %}>Daily (reset each day)</option>
+            <option value="continuous" {% if settings.get('QUEUE_RESET')=='continuous' %}selected{% endif %}>Continuous (never reset)</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+      </form>
+    </div>
+
+    <!-- Users -->
+    <div class="card">
+      <div class="card-title">👥 Users</div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr><th>Name</th><th>Email / Phone</th><th>Role</th></tr>
+          </thead>
+          <tbody>
+            {% for u in users %}
+            <tr>
+              <td style="font-weight:500;">{{ u.name }}</td>
+              <td style="font-size:12px;" class="text-muted">{{ u.email or u.phone }}</td>
+              <td><span class="badge badge-{{ 'confirmed' if u.role=='ADMIN' else 'submitted' if 'CS' in u.role else 'inreview' if u.role=='OPS-DELIVERY' else 'draft' }}">{{ u.role }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Item Master -->
+    <div class="card" style="grid-column:span 2;">
+      <div class="card-title">📦 Item Master ({{ items|length }} items)</div>
+      <div style="max-height:400px;overflow-y:auto;">
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Item Code</th><th>Description</th><th>Active</th><th></th></tr>
+            </thead>
+            <tbody>
+              {% for item in items %}
+              <tr>
+                <td class="mono" style="font-size:12px;color:var(--accent);">{{ item.item_code }}</td>
+                <td>{{ item.description }}</td>
+                <td>
+                  <span class="badge {% if item.active_flag %}badge-confirmed{% else %}badge-cancelled{% endif %}">
+                    {{ 'Active' if item.active_flag else 'Inactive' }}
+                  </span>
+                </td>
+                <td>
+                  <form method="POST" action="{{ url_for('toggle_item', item_code=item.item_code) }}" style="display:inline;">
+                    <button type="submit" class="btn btn-sm {% if item.active_flag %}btn-danger{% else %}btn-success{% endif %}">
+                      {{ 'Deactivate' if item.active_flag else 'Activate' }}
+                    </button>
+                  </form>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

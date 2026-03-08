@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}Queue — BMSydney Staff{% endblock %}
+{% block content %}
+<div class="container">
+  <div class="page-header flex-between">
+    <div>
+      <div class="page-title">Work Queue</div>
+      <div class="page-sub">
+        {% if user.role == 'CS-CABRA' %}Cabramatta Pickup Orders
+        {% elif user.role == 'CS-LIDCOMBE' %}Lidcombe Pickup Orders
+        {% elif user.role == 'OPS-DELIVERY' %}Delivery Orders
+        {% else %}All Orders (Admin View)
+        {% endif %}
+      </div>
+    </div>
+    <div class="flex gap-8">
+      <span style="background:var(--surface2);border:1px solid var(--border);padding:6px 14px;border-radius:8px;font-size:13px;color:var(--muted);">
+        {{ orders|length }} active order{{ 's' if orders|length != 1 else '' }}
+      </span>
+    </div>
+  </div>
+
+  {% if not orders %}
+  <div class="card" style="text-align:center;padding:60px 24px;">
+    <div style="font-size:48px;margin-bottom:16px;">✅</div>
+    <div style="font-size:16px;font-weight:600;margin-bottom:8px;">Queue is empty</div>
+    <div class="text-muted">No orders pending for your queue</div>
+  </div>
+  {% else %}
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Queue #</th>
+            <th>Order Ref</th>
+            <th>Customer</th>
+            <th>Type</th>
+            <th>Details</th>
+            <th>Required</th>
+            <th>Items</th>
+            <th>Status</th>
+            <th>Submitted</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for order in orders %}
+          <tr>
+            <td>
+              <span class="mono" style="color:var(--accent);font-size:13px;font-weight:700;">
+                {{ order.queue_number or '—' }}
+              </span>
+            </td>
+            <td>
+              <span class="mono text-muted" style="font-size:11px;">{{ order.order_ref }}</span>
+            </td>
+            <td style="font-weight:500;">{{ order.customer_name }}</td>
+            <td>
+              {% if order.order_type == 'Pickup' %}
+              <span style="color:#40c0c0;font-size:13px;">🏪 {{ order.pickup_store }}</span>
+              {% else %}
+              <span style="color:#9090e0;font-size:13px;">🚚 Delivery</span>
+              {% endif %}
+            </td>
+            <td style="font-size:12px;color:var(--muted);max-width:200px;">
+              {{ order.delivery_address or order.pickup_store or '—' }}
+            </td>
+            <td style="font-size:12px;">{{ order.required_date | ddate }}</td>
+            <td style="font-size:12px;color:var(--muted);">—</td>
+            <td><span class="badge badge-{{ order.status.lower() }}">{{ order.status }}</span></td>
+            <td style="font-size:12px;color:var(--muted);">
+              {{ order.submitted_at | ddate }}
+            </td>
+            <td>
+              <a href="{{ url_for('staff_order_detail', order_id=order.id) }}" class="btn btn-sm btn-primary">Open →</a>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

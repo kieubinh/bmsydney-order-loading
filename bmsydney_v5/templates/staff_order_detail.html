@@ -1,0 +1,309 @@
+{% extends "base.html" %}
+{% block title %}Order {{ order.order_ref }} — Staff{% endblock %}
+{% block content %}
+<div class="container" style="max-width:1000px;">
+  <div class="page-header flex-between">
+    <div>
+      <a href="{{ url_for('staff_queue') }}" style="font-size:12px;color:var(--muted);">← Back to Queue</a>
+      <div class="page-title mono" style="margin-top:6px;">{{ order.order_ref }}</div>
+      <div class="page-sub flex gap-8" style="margin-top:4px;">
+        <span>Queue: <span class="mono text-accent">{{ order.queue_number or 'Pending' }}</span></span>
+        <span>·</span>
+        <span class="badge badge-{{ order.status.lower() }}">{{ order.status }}</span>
+        <span>·</span>
+        <span>{{ order.order_type }}{% if order.pickup_store %} — {{ order.pickup_store }}{% endif %}</span>
+      </div>
+    </div>
+    <!-- Status actions -->
+    <div class="flex gap-8">
+      <form method="POST" action="{{ url_for('update_status', order_id=order.id) }}" style="display:inline;">
+        <select name="status" class="form-control" style="width:130px;display:inline-block;" onchange="this.form.submit()">
+          {% for s in ['Submitted','InReview','Confirmed','Exported','Completed','Cancelled'] %}
+          <option value="{{ s }}" {% if order.status == s %}selected{% endif %}>{{ s }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 320px;gap:20px;">
+    <!-- MAIN COLUMN -->
+    <div>
+      <!-- Customer Info -->
+      <div class="card mb-4">
+        <div class="flex-between mb-4">
+          <div class="card-title" style="margin:0;">Customer</div>
+          {% if customer.phone %}
+          <a href="tel:{{ customer.phone }}" class="btn btn-sm btn-success">📞 Call {{ customer.phone }}</a>
+          {% endif %}
+        </div>
+        <div class="grid-2">
+          <div><div class="form-label">Name</div><div style="font-weight:600;">{{ customer.name }}</div></div>
+          <div><div class="form-label">Email</div><div>{{ customer.email or '—' }}</div></div>
+          <div><div class="form-label">Phone</div><div>{{ customer.phone or '—' }}</div></div>
+          <div><div class="form-label">Source</div><div>{{ order.source }}</div></div>
+        </div>
+      </div>
+
+      <!-- Edit Order Details -->
+      <div class="card mb-4">
+        <div class="card-title">Order Details</div>
+        <form method="POST">
+          <div class="grid-2">
+            <div class="form-group">
+              <label class="form-label">Required Date</label>
+              <input type="text" name="required_date" class="form-control" value="{{ order.required_date | ddate if order.required_date else '' }}" placeholder="DD/MM/YYYY">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Number</label>
+              <input type="text" name="contact_number" class="form-control" value="{{ order.contact_number or '' }}" placeholder="04xx xxx xxx">
+            </div>
+            {% if order.order_type == 'Delivery' %}
+            <div class="form-group col-span-2">
+              <label class="form-label">Delivery Address</label>
+              <input type="text" name="delivery_address" class="form-control" value="{{ order.delivery_address or '' }}">
+            </div>
+            {% endif %}
+            <div class="form-group">
+              <label class="form-label">Job Name</label>
+              <input type="text" name="job_name" class="form-control" value="{{ order.job_name or '' }}">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Customer Order No / PO</label>
+              <input type="text" name="customer_order_no" class="form-control" value="{{ order.customer_order_no or '' }}">
+            </div>
+            <div class="form-group col-span-2">
+              <label class="form-label">Fulfilment Note</label>
+              <textarea name="fulfilment_note" class="form-control">{{ order.fulfilment_note or '' }}</textarea>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Order Lines Editor -->
+      <div class="card mb-4">
+        <div class="flex-between mb-4">
+          <div class="card-title" style="margin:0;">Order Lines</div>
+          <button class="btn btn-sm btn-secondary" onclick="toggleAddLine()">+ Add Item</button>
+        </div>
+
+        <!-- Add line panel -->
+        <div id="add-line-panel" style="display:none;background:var(--surface2);border-radius:8px;padding:14px;margin-bottom:14px;">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;">
+            <div style="flex:0 0 180px;">
+              <div class="form-label">Item Code</div>
+              <input type="text" id="new-item-code" class="form-control" placeholder="Search…" oninput="liveSearch(this.value)">
+              <div id="live-results" style="position:absolute;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:8px;min-width:300px;display:none;max-height:200px;overflow-y:auto;"></div>
+            </div>
+            <div style="flex:1;min-width:140px;">
+              <div class="form-label">Description</div>
+              <input type="text" id="new-item-desc" class="form-control" placeholder="Auto-filled">
+            </div>
+            <div style="flex:0 0 90px;">
+              <div class="form-label">Qty</div>
+              <input type="number" id="new-item-qty" class="form-control" min="1" value="1">
+            </div>
+            <button class="btn btn-success" onclick="addStaffLine()">Add</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>#</th><th>Item Code</th><th>Description</th><th>Quantity</th><th></th></tr>
+            </thead>
+            <tbody id="staff-lines-tbody">
+              {% for line in lines %}
+              <tr data-item="{{ line.item_code }}" data-desc="{{ line.description or '' }}" data-qty="{{ line.quantity }}">
+                <td class="text-muted">{{ loop.index }}</td>
+                <td class="mono" style="color:var(--accent);font-size:12px;">{{ line.item_code }}</td>
+                <td>{{ line.description or '—' }}</td>
+                <td>
+                  <input type="number" value="{{ line.quantity }}" min="0.01" step="0.01"
+                         style="width:80px;" class="form-control"
+                         onchange="updateStaffQty(this, {{ loop.index0 }})">
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-danger" onclick="removeStaffLine(this)">✕</button>
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div style="display:flex;justify-content:flex-end;margin-top:12px;">
+          <button class="btn btn-secondary" onclick="saveLines()">💾 Save Lines</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIDEBAR -->
+    <div>
+      <!-- XLS Actions -->
+      <div class="card mb-4">
+        <div class="card-title">XLS Files</div>
+        <form method="POST" action="{{ url_for('generate_xls_route', order_id=order.id) }}">
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-bottom:12px;">
+            ⚡ Generate New XLS
+          </button>
+        </form>
+        {% if attachments %}
+          {% for att in attachments %}
+          {% if att.attach_type == 'GeneratedXLS' %}
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">
+            <div>
+              <div style="font-size:12px;font-weight:600;">v{{ att.version_no }}</div>
+              <div style="font-size:10px;color:var(--muted);">{{ att.created_at | ddate }}</div>
+            </div>
+            <a href="{{ url_for('download_xls', attachment_id=att.id) }}" class="btn btn-sm btn-success">↓ XLS</a>
+          </div>
+          {% endif %}
+          {% endfor %}
+        {% else %}
+          <div style="font-size:12px;color:var(--muted);padding:8px 0;">No files generated yet</div>
+        {% endif %}
+      </div>
+
+      <!-- Audit Log -->
+      <div class="card">
+        <div class="card-title">Audit Trail</div>
+        <div style="max-height:400px;overflow-y:auto;">
+          {% if audit %}
+            {% for entry in audit %}
+            <div style="padding:10px 0;border-bottom:1px solid var(--border);">
+              <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                <span style="font-size:12px;font-weight:600;color:var(--text);">{{ entry.action_type }}</span>
+                <span style="font-size:10px;color:var(--muted);">{{ entry.created_at | ddate }}</span>
+              </div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px;">by {{ entry.actor_name or '—' }}</div>
+              {% if entry.changes %}
+              <div style="font-size:10px;font-family:var(--mono);color:var(--muted);margin-top:4px;word-break:break-all;">
+                {{ entry.changes[:120] }}{% if entry.changes|length > 120 %}…{% endif %}
+              </div>
+              {% endif %}
+            </div>
+            {% endfor %}
+          {% else %}
+            <div style="font-size:12px;color:var(--muted);">No audit entries yet</div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let staffLines = [
+  {% for line in lines %}
+  { item_code: "{{ line.item_code }}", description: "{{ line.description or '' }}", quantity: {{ line.quantity }} },
+  {% endfor %}
+];
+
+function toggleAddLine() {
+  const p = document.getElementById('add-line-panel');
+  p.style.display = p.style.display === 'none' ? 'block' : 'none';
+}
+
+let searchTimeout;
+async function liveSearch(q) {
+  clearTimeout(searchTimeout);
+  const results = document.getElementById('live-results');
+  if (!q) { results.style.display = 'none'; return; }
+  searchTimeout = setTimeout(async () => {
+    const res = await fetch(`/api/items?search=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    results.style.display = data.length ? 'block' : 'none';
+    results.innerHTML = data.slice(0,10).map(item => `
+      <div onclick="selectItem('${item.item_code}','${item.description.replace(/'/g,"\\'")}');"
+           style="padding:8px 12px;cursor:pointer;font-size:12px;border-bottom:1px solid var(--border);"
+           onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background=''">
+        <span class="mono" style="color:var(--accent);">${item.item_code}</span>
+        <span style="color:var(--muted);margin-left:8px;">${item.description}</span>
+      </div>
+    `).join('');
+  }, 200);
+}
+
+function selectItem(code, desc) {
+  document.getElementById('new-item-code').value = code;
+  document.getElementById('new-item-desc').value = desc;
+  document.getElementById('live-results').style.display = 'none';
+}
+
+function addStaffLine() {
+  const code = document.getElementById('new-item-code').value.trim();
+  const desc = document.getElementById('new-item-desc').value.trim();
+  const qty = parseFloat(document.getElementById('new-item-qty').value);
+  if (!code || !qty || qty <= 0) { alert('Item code and quantity required'); return; }
+  const existing = staffLines.findIndex(l => l.item_code === code);
+  if (existing >= 0) staffLines[existing].quantity += qty;
+  else staffLines.push({ item_code: code, description: desc, quantity: qty });
+  renderStaffLines();
+  document.getElementById('new-item-code').value = '';
+  document.getElementById('new-item-desc').value = '';
+  document.getElementById('new-item-qty').value = '1';
+  document.getElementById('add-line-panel').style.display = 'none';
+}
+
+function removeStaffLine(btn) {
+  const row = btn.closest('tr');
+  const code = row.getAttribute('data-item');
+  staffLines = staffLines.filter(l => l.item_code !== code);
+  row.remove();
+  renumberLines();
+}
+
+function updateStaffQty(input, idx) {
+  const v = parseFloat(input.value);
+  if (v > 0 && idx < staffLines.length) staffLines[idx].quantity = v;
+}
+
+function renumberLines() {
+  document.querySelectorAll('#staff-lines-tbody tr').forEach((tr, i) => {
+    tr.querySelector('td').textContent = i + 1;
+  });
+}
+
+function renderStaffLines() {
+  const tbody = document.getElementById('staff-lines-tbody');
+  tbody.innerHTML = staffLines.map((l, i) => `
+    <tr data-item="${l.item_code}" data-desc="${l.description}" data-qty="${l.quantity}">
+      <td class="text-muted">${i+1}</td>
+      <td class="mono" style="color:var(--accent);font-size:12px;">${l.item_code}</td>
+      <td>${l.description || '—'}</td>
+      <td><input type="number" value="${l.quantity}" min="0.01" step="0.01" style="width:80px;" class="form-control" onchange="updateStaffQty(this,${i})"></td>
+      <td><button class="btn btn-sm btn-danger" onclick="removeStaffLine(this)">✕</button></td>
+    </tr>
+  `).join('');
+}
+
+async function saveLines() {
+  const res = await fetch(`/api/orders/{{ order.id }}/update-lines`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ lines: staffLines })
+  });
+  const data = await res.json();
+  if (data.success) {
+    // Show flash-style notification
+    const n = document.createElement('div');
+    n.className = 'alert alert-success';
+    n.style.cssText = 'position:fixed;top:70px;right:20px;z-index:200;box-shadow:0 4px 20px rgba(0,0,0,.4);max-width:300px;';
+    n.textContent = '✓ Lines saved successfully';
+    document.body.appendChild(n);
+    setTimeout(() => n.remove(), 3000);
+  }
+}
+
+// Close live search on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#new-item-code')) {
+    const r = document.getElementById('live-results');
+    if (r) r.style.display = 'none';
+  }
+});
+</script>
+{% endblock %}
